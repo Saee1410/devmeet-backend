@@ -1,15 +1,18 @@
+// import { Worker } from "bullmq";
+// import IORedis from "ioredis";
+
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import redisConnection from "../config/redis.js";
 
 import { runJava } from "../executors/javaExecutor.js";
 import { runCpp } from "../executors/cppExecutor.js";
 import { runC } from "../executors/cExecutor.js";
 
-const redisConnection = new IORedis({
-    host: "localhost",
-    port: 6379,
-    maxRetriesPerRequest: null,
-});
+// const redisConnection = new IORedis({
+//     host: "localhost",
+//     port: 6379,
+//     maxRetriesPerRequest: null,
+// });
 
 const codeWorker = new Worker(
     "codeExecution",
