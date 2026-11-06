@@ -1,24 +1,61 @@
 import { Queue, QueueEvents } from "bullmq";
 import redisConnection from "../config/redis.js";
 
-export const codeQueue = new Queue(
-    "codeExecution",
-    {
-        connection: redisConnection,
-    }
-);
+const queueEventsConnection = redisConnection.duplicate({
+    maxRetriesPerRequest: null,
+});
 
-export const codeQueueEvents = new QueueEvents(
-    "codeExecution",
-    {
-        connection: redisConnection,
-    }
-);
+queueEventsConnection.on("connect", () => {
+    console.log("QueueEvents Redis Connected");
+});
+
+queueEventsConnection.on("error", (err) => {
+    console.error("QueueEvents Redis Error:", err.message);
+});
+
+export const codeQueue = new Queue("codeExecution", {
+    connection: redisConnection,
+});
+
+export const codeQueueEvents = new QueueEvents("codeExecution", {
+    connection: queueEventsConnection,
+});
 
 await codeQueueEvents.waitUntilReady();
 
 console.log("✅ Code Queue Ready");
 console.log("✅ Code Queue Events Ready");
+
+
+// import { Queue, QueueEvents } from "bullmq";
+// import redisConnection from "../config/redis.js";
+
+// // Separate connection for QueueEvents
+// const queueEventsConnection = redisConnection.duplicate({
+//     maxRetriesPerRequest: null,
+// });
+
+// queueEventsConnection.on("connect", () => {
+//     console.log("QueueEvents Redis Connected");
+// });
+
+// queueEventsConnection.on("error", (err) => {
+//     console.error("QueueEvents Redis Error:", err.message);
+// });
+
+// export const codeQueue = new Queue("codeExecution", {
+//     connection: redisConnection,
+// });
+
+// export const codeQueueEvents = new QueueEvents("codeExecution", {
+//     connection: queueEventsConnection,
+// });
+
+// await codeQueueEvents.waitUntilReady();
+
+// console.log("✅ Code Queue Ready");
+// console.log("✅ Code Queue Events Ready");
+
 
 
 // import { Queue, QueueEvents } from "bullmq";
