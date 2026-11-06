@@ -19,29 +19,28 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
+// Allowed Frontend Origins
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://devmeetown-nu.vercel.app"
+];
+
 // Socket.IO
 const ioInstance = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  },
-  transports: ["websocket", "polling"],
-  allowEIO3: true,
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
+    },
+    transports: ["websocket", "polling"],
+    allowEIO3: true
 });
 
 global.io = ioInstance;
 
 connectToSocket();
 
-// ======================
-// CORS
-// ======================
-const allowedOrigins = [
-    "http://localhost:5173",
-    "https://devmeetown-nu.vercel.app"
-];
-
+// Express CORS
 app.use(
     cors({
         origin: allowedOrigins,
@@ -49,6 +48,44 @@ app.use(
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     })
 );
+
+// // Socket.IO
+// // Allowed Frontend Origins
+// const allowedOrigins = [
+//     "http://localhost:5173",
+//     "https://devmeetown-nu.vercel.app"
+// ];
+
+// // Socket.IO
+// const ioInstance = new Server(server, {
+//     cors: {
+//         origin: allowedOrigins,
+//         methods: ["GET", "POST", "PUT", "DELETE"],
+//         credentials: true
+//     },
+//     transports: ["websocket", "polling"],
+//     allowEIO3: true
+// });
+
+// global.io = ioInstance;
+
+// connectToSocket();
+
+// // ======================
+// // CORS
+// // ======================
+// const allowedOrigins = [
+//     "http://localhost:5173",
+//     "https://devmeetown-nu.vercel.app"
+// ];
+
+// app.use(
+//     cors({
+//         origin: allowedOrigins,
+//         credentials: true,
+//         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//     })
+// );
 
 // ======================
 // Middlewares
