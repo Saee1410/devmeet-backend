@@ -1,6 +1,3 @@
-// import { Worker } from "bullmq";
-// import IORedis from "ioredis";
-
 import { Worker } from "bullmq";
 import redisConnection from "../config/redis.js";
 
@@ -8,17 +5,12 @@ import { runJava } from "../executors/javaExecutor.js";
 import { runCpp } from "../executors/cppExecutor.js";
 import { runC } from "../executors/cExecutor.js";
 
-// const redisConnection = new IORedis({
-//     host: "localhost",
-//     port: 6379,
-//     maxRetriesPerRequest: null,
-// });
+// Duplicate the connection so the worker gets its own dedicated blocking socket
+const workerConnection = redisConnection.duplicate();
 
 const codeWorker = new Worker(
     "codeExecution",
-
     async (job) => {
-
         const {
             code,
             language,
@@ -36,32 +28,17 @@ const codeWorker = new Worker(
         let result;
 
         switch (language) {
-
             case "java":
-                result = await runJava(
-                    code,
-                    input || ""
-                );
+                result = await runJava(code, input || "");
                 break;
-
             case "cpp":
-                result = await runCpp(
-                    code,
-                    input || ""
-                );
+                result = await runCpp(code, input || "");
                 break;
-
             case "c":
-                result = await runC(
-                    code,
-                    input || ""
-                );
+                result = await runC(code, input || "");
                 break;
-
             default:
-                throw new Error(
-                    "Unsupported language"
-                );
+                throw new Error("Unsupported language");
         }
 
         return {
@@ -69,55 +46,159 @@ const codeWorker = new Worker(
             roomId,
         };
     },
-
     {
-        connection: redisConnection
+        connection: workerConnection,
     }
 );
 
-codeWorker.on(
-    "completed",
-    (job, result) => {
+codeWorker.on("completed", (job, result) => {
+    const { success, output, error, roomId } = result;
 
-        const {
-            success,
+    if (!global.io) {
+        console.error("Worker cannot find the global instance!");
+        return;
+    }
+
+    if (success) {
+        global.io.to(roomId).emit("codeOutput", {
+            success: true,
             output,
+        });
+    } else {
+        global.io.to(roomId).emit("codeOutput", {
+            success: false,
             error,
-            roomId
-        } = result;
-
-        if (!global.io) {
-
-            console.error(
-                "Worker cannot find the global instance!"
-            );
-
-            return;
-        }
-
-        if (success) {
-
-            global.io
-                .to(roomId)
-                .emit("codeOutput", {
-                    success: true,
-                    output,
-                });
-
-        } else {
-
-            global.io
-                .to(roomId)
-                .emit("codeOutput", {
-                    success: false,
-                    error,
-                });
-
-        }
+        });
     }
-);
+});
+
+codeWorker.on("error", (err) => {
+    console.error("Worker encountered a Redis error:", err.message);
+});
 
 export default codeWorker;
+
+
+// // import { Worker } from "bullmq";
+// // import IORedis from "ioredis";
+
+// import { Worker } from "bullmq";
+// import redisConnection from "../config/redis.js";
+
+// import { runJava } from "../executors/javaExecutor.js";
+// import { runCpp } from "../executors/cppExecutor.js";
+// import { runC } from "../executors/cExecutor.js";
+
+// // const redisConnection = new IORedis({
+// //     host: "localhost",
+// //     port: 6379,
+// //     maxRetriesPerRequest: null,
+// // });
+
+// const codeWorker = new Worker(
+//     "codeExecution",
+
+//     async (job) => {
+
+//         const {
+//             code,
+//             language,
+//             roomId,
+//             input
+//         } = job.data;
+
+//         console.log("🚀 Worker received:");
+//         console.log({
+//             language,
+//             roomId,
+//             input
+//         });
+
+//         let result;
+
+//         switch (language) {
+
+//             case "java":
+//                 result = await runJava(
+//                     code,
+//                     input || ""
+//                 );
+//                 break;
+
+//             case "cpp":
+//                 result = await runCpp(
+//                     code,
+//                     input || ""
+//                 );
+//                 break;
+
+//             case "c":
+//                 result = await runC(
+//                     code,
+//                     input || ""
+//                 );
+//                 break;
+
+//             default:
+//                 throw new Error(
+//                     "Unsupported language"
+//                 );
+//         }
+
+//         return {
+//             ...result,
+//             roomId,
+//         };
+//     },
+
+//     {
+//         connection: redisConnection
+//     }
+// );
+
+// codeWorker.on(
+//     "completed",
+//     (job, result) => {
+
+//         const {
+//             success,
+//             output,
+//             error,
+//             roomId
+//         } = result;
+
+//         if (!global.io) {
+
+//             console.error(
+//                 "Worker cannot find the global instance!"
+//             );
+
+//             return;
+//         }
+
+//         if (success) {
+
+//             global.io
+//                 .to(roomId)
+//                 .emit("codeOutput", {
+//                     success: true,
+//                     output,
+//                 });
+
+//         } else {
+
+//             global.io
+//                 .to(roomId)
+//                 .emit("codeOutput", {
+//                     success: false,
+//                     error,
+//                 });
+
+//         }
+//     }
+// );
+
+// export default codeWorker;
 
 
 
